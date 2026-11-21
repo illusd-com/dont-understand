@@ -1,9 +1,11 @@
 import { NextResponse } from 'next/server';
-import { getDb, verifyRecaptcha } from '@/lib/db';
+import { getDb, verifyRecaptcha, ensureTables } from '@/lib/db';
 import bcrypt from 'bcryptjs';
 import { cookies } from 'next/headers';
 
 export async function POST(req: Request) {
+  await ensureTables();
+
   const { username, password, recaptchaToken } = await req.json();
 
   const recaptcha = await verifyRecaptcha(recaptchaToken);
