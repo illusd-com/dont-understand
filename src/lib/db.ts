@@ -10,16 +10,23 @@ export function getDb() {
   });
 }
 
-export async function verifyRecaptcha(token: string): Promise<boolean> {
+export async function verifyRecaptcha(token: string): Promise<{ ok: boolean; reason?: string }> {
   const secret = process.env.RECAPTCHA_SECRET_KEY;
-  if (!secret || !token) return false;
+  if (!secret) return { ok: false, reason: 'missing secret' };
+  if (!token) return { ok: false, reason: 'missing token' };
 
   const res = await fetch('https://www.google.com/recaptcha/api/siteverify', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: `secret=${secret}&response=${token}`,
+    body: `secret=${encodeURIComponent(secret)}&response=${encodeURIComponent(token)}`,
   });
 
   const data = await res.json();
-  return data.success === true && data.score > 0.5;
+
+  // v3: score > 0.3 is usually fine; also accept if success and no score (v2)
+  if (data.success && (data.score === undefined || data.score >= 0.3)) {
+    return { ok: true };
+  }
+
+  return { ok: false, reason: data['error-codes']?.join(',') || 'low score' };
 }
