@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 interface Post {
   id: number;
@@ -39,6 +40,17 @@ export default function HomePage() {
     setPosts(newPosts);
   }
 
+  async function handleLike(postId: number) {
+    const res = await fetch(`/api/posts/${postId}/like`, { method: 'POST' });
+    if (res.ok) {
+      const data = await res.json();
+      setPosts(posts.map(p => p.id === postId ? {
+        ...p,
+        like_count: p.like_count + (data.liked ? 1 : -1)
+      } : p));
+    }
+  }
+
   return (
     <div className="min-h-screen">
       <header className="border-b border-[#222] px-6 py-4 flex justify-between items-center sticky top-0 bg-[#0a0a0a] z-10">
@@ -74,10 +86,17 @@ export default function HomePage() {
                   <div className="text-sm text-[#888]">{post.created_at}</div>
                 </div>
               </div>
-              <div className="text-base leading-relaxed mb-2">{post.content}</div>
-              <div className="text-sm text-[#888] flex gap-6">
-                <span>回覆 {post.reply_count}</span>
-                <span>讚 {post.like_count}</span>
+              <div className="text-base leading-relaxed mb-3">{post.content}</div>
+              <div className="text-sm text-[#888] flex gap-6 items-center">
+                <Link href={`/post/${post.id}`} className="hover:text-white">
+                  回覆 {post.reply_count}
+                </Link>
+                <button
+                  onClick={() => handleLike(post.id)}
+                  className="hover:text-white active:scale-95 transition-transform"
+                >
+                  讚 {post.like_count}
+                </button>
               </div>
             </div>
           ))}
