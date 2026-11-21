@@ -6,8 +6,12 @@ import { cookies } from 'next/headers';
 export async function POST(req: Request) {
   const { username, password, recaptchaToken } = await req.json();
 
-  if (!(await verifyRecaptcha(recaptchaToken))) {
-    return NextResponse.json({ error: 'reCAPTCHA 驗證失敗' }, { status: 400 });
+  const recaptcha = await verifyRecaptcha(recaptchaToken);
+  if (!recaptcha.ok) {
+    return NextResponse.json(
+      { error: `reCAPTCHA 驗證失敗 (${recaptcha.reason || 'unknown'})` },
+      { status: 400 }
+    );
   }
 
   const db = getDb();
