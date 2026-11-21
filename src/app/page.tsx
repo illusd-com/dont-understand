@@ -33,62 +33,72 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-6">
-      <div className="w-full max-w-4xl grid md:grid-cols-2 gap-12 md:gap-16 items-center">
-        {/* Intro */}
-        <div className="text-left">
-          <h1 className="text-4xl md:text-5xl font-semibold tracking-tight leading-tight mb-4">
-            搞不懂
-          </h1>
-          <p className="text-lg text-[#a0a0a0] mb-6 leading-relaxed">
-            一個專門拿來貼「搞不懂的事情」的地方。
-          </p>
-          <p className="text-[#888] leading-relaxed mb-4">
-            工作上的規定、朋友的講法、新聞裡的因果、甚至自己為什麼會這樣想——不管大小，搞不懂就寫下來。讓看過的人幫你把它講清楚。
-          </p>
-          <p className="text-sm text-[#666]">
-            不接推銷廣告、不發色情、不討論不實內容。就是搞不懂。
-          </p>
-        </div>
+    <div className="min-h-screen flex flex-col">
+      <header className="px-6 md:px-10 py-5 flex items-center justify-between border-b border-[#1f1f1f]">
+        <div className="text-sm font-medium tracking-tight">搞不懂</div>
+        <a href="/register" className="text-sm text-[#8a8a8a] hover:text-white transition-colors">
+          註冊
+        </a>
+      </header>
 
-        {/* Login card */}
-        <div className="bg-[#111] border border-[#222] rounded-2xl p-8 md:p-10">
-          <h2 className="text-xl font-medium mb-1">登入</h2>
-          <p className="text-sm text-[#888] mb-6">登入後才能看和發</p>
-          {error && <p className="text-red-400 mb-4 text-sm">{error}</p>}
-          <form onSubmit={handleSubmit} className="space-y-3">
-            <input
-              className="w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl px-4 py-3 text-base focus:outline-none focus:border-[#ff6b00] transition-colors"
-              placeholder="使用者名稱"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              required
-              autoComplete="username"
-            />
-            <input
-              type="password"
-              className="w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl px-4 py-3 text-base focus:outline-none focus:border-[#ff6b00] transition-colors"
-              placeholder="密碼"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              autoComplete="current-password"
-            />
-            <button
-              type="submit"
-              className="w-full bg-[#ff6b00] text-black font-medium py-3 rounded-xl active:scale-[0.97] transition-transform duration-150"
-            >
-              登入
-            </button>
-          </form>
-          <p className="mt-6 text-sm text-[#888]">
-            還沒有帳號？{' '}
-            <a href="/register" className="text-[#ff6b00] hover:underline">
-              註冊
-            </a>
-          </p>
+      <main className="flex-1 flex items-center px-6 md:px-10 py-16">
+        <div className="w-full max-w-5xl mx-auto grid md:grid-cols-[1.2fr_0.8fr] gap-16 md:gap-24 items-start">
+          <div>
+            <p className="text-xs uppercase tracking-[0.2em] text-[#5c5c5c] mb-6">
+              Don't Understand
+            </p>
+            <h1 className="text-5xl md:text-6xl font-semibold tracking-[-0.03em] leading-[1.05] mb-6">
+              搞不懂的事，<br />寫下來。
+            </h1>
+            <p className="text-lg text-[#b0b0b0] leading-relaxed max-w-md mb-8">
+              工作上的規定、朋友的講法、新聞裡的因果、自己為什麼會這樣想。不管大小，搞不懂就貼上來，讓看過的人幫你把它講清楚。
+            </p>
+            <ul className="text-sm text-[#6a6a6a] space-y-2">
+              <li>不接推銷廣告</li>
+              <li>不發色情</li>
+              <li>不討論不實內容</li>
+            </ul>
+          </div>
+
+          <div className="md:pt-4">
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {error && (
+                <p className="text-sm text-red-400">{error}</p>
+              )}
+              <div>
+                <label className="block text-xs text-[#6a6a6a] mb-1.5">使用者名稱</label>
+                <input
+                  className="w-full bg-transparent border-b border-[#2a2a2a] px-0 py-2.5 text-base focus:outline-none focus:border-[#ff6b00] transition-colors"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  required
+                  autoComplete="username"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-[#6a6a6a] mb-1.5">密碼</label>
+                <input
+                  type="password"
+                  className="w-full bg-transparent border-b border-[#2a2a2a] px-0 py-2.5 text-base focus:outline-none focus:border-[#ff6b00] transition-colors"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  autoComplete="current-password"
+                />
+              </div>
+              <button
+                type="submit"
+                className="mt-4 w-full bg-[#ff6b00] text-black font-medium py-3 rounded-full active:scale-[0.98] transition-transform duration-150"
+              >
+                登入
+              </button>
+              <p className="text-xs text-[#5c5c5c] text-center">
+                登入後才能看和發
+              </p>
+            </form>
+          </div>
         </div>
-      </div>
+      </main>
 
       <script
         src={`https://www.google.com/recaptcha/api.js?render=${process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY}`}
