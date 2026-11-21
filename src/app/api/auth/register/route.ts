@@ -5,8 +5,12 @@ import bcrypt from 'bcryptjs';
 export async function POST(req: Request) {
   const { username, email, password, recaptchaToken } = await req.json();
 
-  if (!(await verifyRecaptcha(recaptchaToken))) {
-    return NextResponse.json({ error: 'reCAPTCHA 驗證失敗' }, { status: 400 });
+  const recaptcha = await verifyRecaptcha(recaptchaToken);
+  if (!recaptcha.ok) {
+    return NextResponse.json(
+      { error: `reCAPTCHA 驗證失敗 (${recaptcha.reason || 'unknown'})` },
+      { status: 400 }
+    );
   }
 
   if (username.length < 2 || password.length < 6) {
