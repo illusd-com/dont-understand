@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 export default function RegisterPage() {
@@ -8,28 +8,58 @@ export default function RegisterPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [ready, setReady] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
+    if (!siteKey) {
+      setError('reCAPTCHA 設定缺失');
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = `https://www.google.com/recaptcha/api.js?render=${siteKey}`;
+    script.async = true;
+    script.onload = () => {
+      (window as any).grecaptcha.ready(() => setReady(true));
+    };
+    document.head.appendChild(script);
+
+    return () => {
+      document.head.removeChild(script);
+    };
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
 
-    const token = await (window as any).grecaptcha?.execute(
-      process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY,
-      { action: 'register' }
-    );
+    if (!ready) {
+      setError('reCAPTCHA 還在載入，請稍候再試');
+      return;
+    }
 
-    const res = await fetch('/api/auth/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, email, password, recaptchaToken: token }),
-    });
+    try {
+      const token = await (window as any).grecaptcha.execute(
+        process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY,
+        { action: 'register' }
+      );
 
-    if (res.ok) {
-      router.push('/');
-    } else {
-      const data = await res.json();
-      setError(data.error || '註冊失敗');
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, email, password, recaptchaToken: token }),
+      });
+
+      if (res.ok) {
+        router.push('/');
+      } else {
+        const data = await res.json();
+        setError(data.error || '註冊失敗');
+      }
+    } catch {
+      setError('reCAPTCHA 執行失敗，請重新整理再試');
     }
   }
 
@@ -86,19 +116,14 @@ export default function RegisterPage() {
             </div>
             <button
               type="submit"
-              className="mt-2 w-full bg-[#ff6b00] text-black font-medium py-3 rounded-full active:scale-[0.98] transition-transform duration-150"
+              disabled={!ready}
+              className="mt-2 w-full bg-[#ff6b00] text-black font-medium py-3 rounded-full active:scale-[0.98] transition-transform duration-150 disabled:opacity-50"
             >
-              註冊
+              {ready ? '註冊' : '載入中...'}
             </button>
           </form>
         </div>
       </main>
-
-      <script
-        src={`https://www.google.com/recaptcha/api.js?render=${process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY}`}
-        async
-        defer
-      />
     </div>
   );
 }
