@@ -9,25 +9,51 @@ export default function RegisterPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [ready, setReady] = useState(false);
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
     const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
     if (!siteKey) {
-      setError('reCAPTCHA 設定缺失');
+      setError('reCAPTCHA Site Key 沒設定（NEXT_PUBLIC_RECAPTCHA_SITE_KEY）');
+      setLoading(false);
       return;
     }
+
+    let timeout = setTimeout(() => {
+      if (!ready) {
+        setError('reCAPTCHA 載入超時，請確認網域已加入 reCAPTCHA 後台，並重新整理');
+        setLoading(false);
+      }
+    }, 8000);
 
     const script = document.createElement('script');
     script.src = `https://www.google.com/recaptcha/api.js?render=${siteKey}`;
     script.async = true;
+    script.onerror = () => {
+      setError('reCAPTCHA script 載入失敗');
+      setLoading(false);
+      clearTimeout(timeout);
+    };
     script.onload = () => {
-      (window as any).grecaptcha.ready(() => setReady(true));
+      const grecaptcha = (window as any).grecaptcha;
+      if (grecaptcha && grecaptcha.ready) {
+        grecaptcha.ready(() => {
+          setReady(true);
+          setLoading(false);
+          clearTimeout(timeout);
+        });
+      } else {
+        setError('reCAPTCHA 未正確初始化');
+        setLoading(false);
+        clearTimeout(timeout);
+      }
     };
     document.head.appendChild(script);
 
     return () => {
-      document.head.removeChild(script);
+      clearTimeout(timeout);
+      if (script.parentNode) script.parentNode.removeChild(script);
     };
   }, []);
 
@@ -36,7 +62,7 @@ export default function RegisterPage() {
     setError('');
 
     if (!ready) {
-      setError('reCAPTCHA 還在載入，請稍候再試');
+      setError('reCAPTCHA 未準備好');
       return;
     }
 
@@ -59,7 +85,7 @@ export default function RegisterPage() {
         setError(data.error || '註冊失敗');
       }
     } catch {
-      setError('reCAPTCHA 執行失敗，請重新整理再試');
+      setError('reCAPTCHA 執行失敗');
     }
   }
 
@@ -116,10 +142,10 @@ export default function RegisterPage() {
             </div>
             <button
               type="submit"
-              disabled={!ready}
+              disabled={loading || !ready}
               className="mt-2 w-full bg-[#ff6b00] text-black font-medium py-3 rounded-full active:scale-[0.98] transition-transform duration-150 disabled:opacity-50"
             >
-              {ready ? '註冊' : '載入中...'}
+              {loading ? '載入中...' : '註冊'}
             </button>
           </form>
         </div>
