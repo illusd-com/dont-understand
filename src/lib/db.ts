@@ -10,23 +10,31 @@ export function getDb() {
   });
 }
 
-export async function verifyRecaptcha(token: string): Promise<{ ok: boolean; reason?: string }> {
+export async function verifyRecaptcha(token: string | undefined): Promise<{ ok: boolean; reason?: string }> {
   const secret = process.env.RECAPTCHA_SECRET_KEY;
-  if (!secret) return { ok: false, reason: 'missing secret' };
-  if (!token) return { ok: false, reason: 'missing token' };
 
-  const res = await fetch('https://www.google.com/recaptcha/api/siteverify', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: `secret=${encodeURIComponent(secret)}&response=${encodeURIComponent(token)}`,
-  });
+  // No secret configured → skip verification
+  if (!secret) return { ok: true, reason: 'skipped (no secret)' };
 
-  const data = await res.json();
+  // No token (script failed to load) → allow through for now
+  if (!token) return { ok: true, reason: 'skipped (no token)' };
 
-  // v3: score > 0.3 is usually fine; also accept if success and no score (v2)
-  if (data.success && (data.score === undefined || data.score >= 0.3)) {
-    return { ok: true };
+  try {
+    const res = await fetch('https://www.google.com/recaptcha/api/siteverify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: `secret=${encodeURIComponent(secret)}&response=${encodeURIComponent(token)}`,
+    });
+
+    const data = await res.json();
+
+    if (data.success && (data.score === undefined || data.score >= 0.3)) {
+      return { ok: true };
+    }
+
+    // Verification failed but don't block the user
+    return { ok: true, reason: 'soft-fail: ' + (data['error-codes']?.join(',') || 'low score') };
+  } catch {
+    return { ok: true, reason: 'soft-fail: network' };
   }
-
-  return { ok: false, reason: data['error-codes']?.join(',') || 'low score' };
 }
