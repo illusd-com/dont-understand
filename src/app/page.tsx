@@ -7,69 +7,47 @@ export default function LoginPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const [ready, setReady] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
     const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
-    if (!siteKey) {
-      setError('reCAPTCHA Site Key 沒設定（NEXT_PUBLIC_RECAPTCHA_SITE_KEY）');
-      setLoading(false);
-      return;
-    }
+    if (!siteKey) return;
 
-    let timeout = setTimeout(() => {
-      if (!ready) {
-        setError('reCAPTCHA 載入超時，請確認網域已加入 reCAPTCHA 後台，並重新整理');
-        setLoading(false);
-      }
-    }, 8000);
+    if (document.querySelector('script[src*="recaptcha"]')) return;
 
     const script = document.createElement('script');
     script.src = `https://www.google.com/recaptcha/api.js?render=${siteKey}`;
     script.async = true;
     script.onerror = () => {
-      setError('reCAPTCHA script 載入失敗');
-      setLoading(false);
-      clearTimeout(timeout);
-    };
-    script.onload = () => {
-      const grecaptcha = (window as any).grecaptcha;
-      if (grecaptcha && grecaptcha.ready) {
-        grecaptcha.ready(() => {
-          setReady(true);
-          setLoading(false);
-          clearTimeout(timeout);
-        });
-      } else {
-        setError('reCAPTCHA 未正確初始化');
-        setLoading(false);
-        clearTimeout(timeout);
-      }
+      console.warn('reCAPTCHA script failed to load');
     };
     document.head.appendChild(script);
-
-    return () => {
-      clearTimeout(timeout);
-      if (script.parentNode) script.parentNode.removeChild(script);
-    };
   }, []);
+
+  async function getToken(): Promise<string | undefined> {
+    const grecaptcha = (window as any).grecaptcha;
+    const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
+    if (!grecaptcha || !siteKey) return undefined;
+
+    try {
+      return await new Promise((resolve) => {
+        grecaptcha.ready(() => {
+          grecaptcha.execute(siteKey, { action: 'login' }).then(resolve).catch(() => resolve(undefined));
+        });
+      });
+    } catch {
+      return undefined;
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
-
-    if (!ready) {
-      setError('reCAPTCHA 未準備好');
-      return;
-    }
+    setSubmitting(true);
 
     try {
-      const token = await (window as any).grecaptcha.execute(
-        process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY,
-        { action: 'login' }
-      );
+      const token = await getToken();
 
       const res = await fetch('/api/auth/login', {
         method: 'POST',
@@ -84,7 +62,9 @@ export default function LoginPage() {
         setError(data.error || '登入失敗');
       }
     } catch {
-      setError('reCAPTCHA 執行失敗');
+      setError('登入失敗，請稍後再試');
+    } finally {
+      setSubmitting(false);
     }
   }
 
@@ -144,10 +124,10 @@ export default function LoginPage() {
               </div>
               <button
                 type="submit"
-                disabled={loading || !ready}
+                disabled={submitting}
                 className="mt-4 w-full bg-[#ff6b00] text-black font-medium py-3 rounded-full active:scale-[0.98] transition-transform duration-150 disabled:opacity-50"
               >
-                {loading ? '載入中...' : '登入'}
+                {submitting ? '處理中...' : '登入'}
               </button>
               <p className="text-xs text-[#5c5c5c] text-center">
                 登入後才能看和發
