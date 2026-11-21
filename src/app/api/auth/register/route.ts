@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
-import { getDb, verifyRecaptcha } from '@/lib/db';
+import { getDb, verifyRecaptcha, ensureTables } from '@/lib/db';
 import bcrypt from 'bcryptjs';
 
 export async function POST(req: Request) {
+  await ensureTables();
+
   const { username, email, password, recaptchaToken } = await req.json();
 
   const recaptcha = await verifyRecaptcha(recaptchaToken);
@@ -13,7 +15,7 @@ export async function POST(req: Request) {
     );
   }
 
-  if (username.length < 2 || password.length < 6) {
+  if (!username || username.length < 2 || !password || password.length < 6) {
     return NextResponse.json({ error: '使用者名稱至少2字，密碼至少6字' }, { status: 400 });
   }
 
@@ -23,10 +25,11 @@ export async function POST(req: Request) {
   try {
     await db.execute({
       sql: 'INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)',
-      args: [username, email, hash],
+      args: [username, email || '', hash],
     });
     return NextResponse.json({ ok: true });
-  } catch {
+  } catch (e) {
+    console.error(e);
     return NextResponse.json({ error: '使用者名稱或Email已被使用' }, { status: 400 });
   }
 }
