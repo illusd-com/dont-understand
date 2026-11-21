@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
-import { getDb } from '@/lib/db';
+import { getDb, ensureTables } from '@/lib/db';
 import { cookies } from 'next/headers';
 
 export async function GET() {
+  await ensureTables();
   const db = getDb();
   const result = await db.execute(`
     SELECT p.id, u.username, p.content, p.created_at, p.reply_count, p.like_count
@@ -17,6 +18,7 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  await ensureTables();
   const username = cookies().get('user')?.value;
   if (!username) {
     return NextResponse.json({ error: '未登入' }, { status: 401 });
